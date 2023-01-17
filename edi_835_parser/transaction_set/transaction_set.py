@@ -10,6 +10,7 @@ from edi_835_parser.segments.utilities import find_identifier
 from edi_835_parser.segments.interchange import Interchange as InterchangeSegment
 from edi_835_parser.segments.financial_information import FinancialInformation as FinancialInformationSegment
 
+
 BuildAttributeResponse = namedtuple('BuildAttributeResponse', 'key value segment segments')
 
 
@@ -58,6 +59,7 @@ class TransactionSet:
 				for index, adjustment in enumerate(service.adjustments):
 					datum[f'adj_{index}_group'] = adjustment.group_code.code
 					datum[f'adj_{index}_code'] = adjustment.reason_code.code
+					datum[f'adj_{index}_desc'] = adjustment.reason_code.description
 					datum[f'adj_{index}_amount'] = adjustment.amount
 
 				for index, reference in enumerate(service.references):
@@ -98,32 +100,44 @@ class TransactionSet:
 		datum = {
 			'marker': claim.claim.marker,
 			'patient': claim.patient.name,
+			'patient_hic': claim.patient.identification_code,
 			'code': service.service.code,
 			'modifier': service.service.modifier,
 			'qualifier': service.service.qualifier,
 			'allowed_units': service.service.allowed_units,
 			'billed_units': service.service.billed_units,
 			'transaction_date': financial_information.transaction_date,
+			'transaction_date_str': financial_information.transaction_date.strftime("%Y/%m/%d"),
+			'transaction_method': financial_information._payment_method,
 			'charge_amount': service.service.charge_amount,
 			'allowed_amount': service.allowed_amount,
 			'paid_amount': service.service.paid_amount,
 			'payer': payer.organization.name,
 			'start_date': start_date,
+			'start_date_str': start_date.strftime("%Y/%m/%d"),
 			'end_date': end_date,
+			'end_date_str': end_date.strftime("%Y/%m/%d"),
 			'rendering_provider': claim.rendering_provider.name if claim.rendering_provider else None,
+			'rendering_provider_id': claim.rendering_provider.identification_code if claim.rendering_provider else None,
 		}
 
 		return datum
 
 	@classmethod
-	def build(cls, file_path: str) -> 'TransactionSet':
+	def build(cls, file_path: str, strInput: bool=False) -> 'TransactionSet':
+		# if strInput == true, parse content of path instead of reading files from path to parse.
 		interchange = None
 		financial_information = None
 		claims = []
 		organizations = []
 
-		with open(file_path) as f:
-			file = f.read()
+		# --- strInput hack starts
+		if (strInput):
+			file = file_path
+		else:
+			with open(file_path) as f:
+				file = f.read()
+		# --- strInput hack ends
 
 		segments = file.split('~')
 		segments = [segment.strip() for segment in segments]
