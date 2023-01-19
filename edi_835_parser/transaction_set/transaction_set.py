@@ -59,11 +59,11 @@ class TransactionSet:
 				for index, adjustment in enumerate(service.adjustments):
 					datum[f'adj_{index}_group'] = adjustment.group_code.code
 					datum[f'adj_{index}_code'] = adjustment.reason_code.code
-					datum[f'adj_{index}_desc'] = adjustment.reason_code.description
 					datum[f'adj_{index}_amount'] = adjustment.amount
 
 				for index, reference in enumerate(service.references):
 					datum[f'ref_{index}_qual'] = reference.qualifier.code
+					datum[f'ref_{index}_desc'] = reference.qualifier.description
 					datum[f'ref_{index}_value'] = reference.value
 
 				for index, remark in enumerate(service.remarks):
