@@ -34,6 +34,7 @@ class TransactionSet:
 	@property
 	def payer(self) -> OrganizationLoop:
 		payer = [o for o in self.organizations if o.organization.type == 'payer']
+		# hack multiple payers... choose the last one.
 		assert len(payer) == 1
 		return payer[0]
 
@@ -51,11 +52,11 @@ class TransactionSet:
 
 				datum = TransactionSet.serialize_service(
 					self.financial_information,
-					self.payer,
+					# self.payer, -- replace with claim.myPayer
+					claim.myPayer, # this is the payer that's attached to the claim (from class method build of this object)
 					claim,
 					service
 				)
-
 				for index, adjustment in enumerate(service.adjustments):
 					datum[f'adj_{index}_group'] = adjustment.group_code.code
 					datum[f'adj_{index}_code'] = adjustment.reason_code.code
@@ -145,6 +146,8 @@ class TransactionSet:
 		segments = iter(segments)
 		segment = None
 
+		_payer = None # attach newest payer to claim
+
 		while True:
 			response = cls.build_attribute(segment, segments)
 			segment = response.segment
@@ -161,9 +164,12 @@ class TransactionSet:
 				financial_information = response.value
 
 			if response.key == 'organization':
+				if response.value.organization.type == 'payer':
+					_payer = response.value # save most recent payer encountered
 				organizations.append(response.value)
 
 			if response.key == 'claim':
+				response.value.myPayer = _payer # attach payer to claim
 				claims.append(response.value)
 
 		return TransactionSet(interchange, financial_information, claims, organizations)
