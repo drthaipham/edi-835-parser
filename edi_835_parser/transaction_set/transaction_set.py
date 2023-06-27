@@ -34,7 +34,6 @@ class TransactionSet:
 	@property
 	def payer(self) -> OrganizationLoop:
 		payer = [o for o in self.organizations if o.organization.type == 'payer']
-		# hack multiple payers... choose the last one.
 		assert len(payer) == 1
 		return payer[0]
 
